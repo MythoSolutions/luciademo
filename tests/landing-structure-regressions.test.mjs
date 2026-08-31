@@ -66,8 +66,8 @@ test("regression: rejects multiple call buttons", () => {
 
 test("regression: rejects multiple session endpoints", () => {
   const twoSessionCalls = widget.replace(
-    'fetch("/api/lucia/session",',
-    'fetch("/api/lucia/session",\n      // /api/lucia/session\n',
+    '"/api/lucia/session"',
+    '"/api/lucia/session" /* /api/lucia/session */',
   );
   assert.throws(() => validate(page, twoSessionCalls));
 });

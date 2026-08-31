@@ -52,6 +52,11 @@ export function isDemoEnabled() {
   return process.env.LUCIA_DEMO_ENABLED?.trim().toLowerCase() === "true";
 }
 
+export function isPrivateDebugEnabled() {
+  return process.env.VERCEL_ENV === "preview"
+    && process.env.LUCIA_PRIVATE_DEBUG_ENABLED?.trim().toLowerCase() === "true";
+}
+
 export function getSessionConfig() {
   return {
     retellApiKey: required("RETELL_API_KEY"),

@@ -48,14 +48,20 @@ function friendlyReason(reason: string) {
 export default function RetellVoiceWidget({
   demoEnabled,
   turnstileSiteKey,
+  debugMode = false,
 }: {
   demoEnabled: boolean;
   turnstileSiteKey: string;
+  debugMode?: boolean;
 }) {
-  const [callState, setCallState] = useState<CallState>("waiting");
+  const [callState, setCallState] = useState<CallState>(
+    demoEnabled && debugMode ? "ready" : "waiting",
+  );
   const [statusMessage, setStatusMessage] = useState(
     !demoEnabled
       ? "La demo está en pausa por ahora."
+      : debugMode
+        ? "Laboratorio listo. Puedes iniciar una prueba."
       : turnstileSiteKey
         ? messages.waiting
         : "La demo todavía no está habilitada en este entorno.",
@@ -69,12 +75,13 @@ export default function RetellVoiceWidget({
 
   const resetChallenge = useCallback(() => {
     setChallengeToken("");
-    setCallState("waiting");
-    setStatusMessage(messages.waiting);
+    setCallState(debugMode ? "ready" : "waiting");
+    setStatusMessage(debugMode ? "Otra prueba está lista." : messages.waiting);
+    if (debugMode) return;
     if (turnstileWidgetId.current && window.turnstile) {
       window.turnstile.reset(turnstileWidgetId.current);
     }
-  }, []);
+  }, [debugMode]);
 
   useEffect(() => {
     const client = new RetellWebClient();
@@ -88,9 +95,13 @@ export default function RetellVoiceWidget({
     client.on("call_ended", () => resetChallenge());
     client.on("error", () => {
       setCallState("error");
-      setStatusMessage(messages.error);
+      setStatusMessage(
+        debugMode
+          ? "La llamada se interrumpió. Puedes intentarlo de nuevo."
+          : messages.error,
+      );
       setChallengeToken("");
-      if (turnstileWidgetId.current && window.turnstile) {
+      if (!debugMode && turnstileWidgetId.current && window.turnstile) {
         window.turnstile.reset(turnstileWidgetId.current);
       }
     });
@@ -100,11 +111,12 @@ export default function RetellVoiceWidget({
       client.removeAllListeners();
       clientRef.current = null;
     };
-  }, [resetChallenge]);
+  }, [debugMode, resetChallenge]);
 
   useEffect(() => {
     if (
       !turnstileReady
+      || debugMode
       || !demoEnabled
       || !turnstileSiteKey
       || !turnstileContainer.current
@@ -134,19 +146,24 @@ export default function RetellVoiceWidget({
         turnstileWidgetId.current = "";
       }
     };
-  }, [demoEnabled, resetChallenge, turnstileReady, turnstileSiteKey]);
+  }, [debugMode, demoEnabled, resetChallenge, turnstileReady, turnstileSiteKey]);
 
   async function startCall() {
-    if (!challengeToken || callState !== "ready" || !clientRef.current) return;
+    const canStart = callState === "ready" || (debugMode && callState === "error");
+    if ((!debugMode && !challengeToken) || !canStart || !clientRef.current) return;
     setCallState("connecting");
     setStatusMessage(messages.connecting);
 
     try {
-      const response = await fetch("/api/lucia/session", {
+      const response = await fetch(debugMode ? "/api/lucia/debug-session" : "/api/lucia/session", {
         method: "POST",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ turnstileToken: challengeToken, website: honeypot }),
+        body: JSON.stringify(
+          debugMode
+            ? { website: honeypot }
+            : { turnstileToken: challengeToken, website: honeypot },
+        ),
       });
       const result = await response.json() as {
         ok?: boolean;
@@ -157,7 +174,7 @@ export default function RetellVoiceWidget({
       if (!response.ok || !result.ok || !result.accessToken) {
         setCallState("error");
         setStatusMessage(friendlyReason(result.reason || ""));
-        if (turnstileWidgetId.current && window.turnstile) {
+        if (!debugMode && turnstileWidgetId.current && window.turnstile) {
           window.turnstile.reset(turnstileWidgetId.current);
         }
         return;
@@ -165,8 +182,12 @@ export default function RetellVoiceWidget({
       await clientRef.current.startCall({ accessToken: result.accessToken });
     } catch {
       setCallState("error");
-      setStatusMessage(messages.error);
-      if (turnstileWidgetId.current && window.turnstile) {
+      setStatusMessage(
+        debugMode
+          ? "La llamada se interrumpió. Puedes intentarlo de nuevo."
+          : messages.error,
+      );
+      if (!debugMode && turnstileWidgetId.current && window.turnstile) {
         window.turnstile.reset(turnstileWidgetId.current);
       }
     }
@@ -179,7 +200,11 @@ export default function RetellVoiceWidget({
   const active = callState === "active";
   const disabled = active
     ? false
-    : !demoEnabled || !turnstileSiteKey || callState === "connecting" || callState === "waiting" || callState === "error";
+    : !demoEnabled
+      || (!debugMode && !turnstileSiteKey)
+      || callState === "connecting"
+      || callState === "waiting"
+      || (!debugMode && callState === "error");
   const statusLabel = !demoEnabled
     ? "En pausa"
     : active
@@ -189,14 +214,14 @@ export default function RetellVoiceWidget({
       : callState === "ready"
         ? "Lista"
         : callState === "error"
-          ? "En pausa"
+          ? debugMode ? "Reintentar" : "En pausa"
           : turnstileSiteKey
             ? "Verificación"
             : "En preparación";
 
   return (
     <aside className="lucia-module" aria-labelledby="voice-entry-title">
-      {demoEnabled && turnstileSiteKey ? (
+      {demoEnabled && turnstileSiteKey && !debugMode ? (
         <Script
           id="cloudflare-turnstile"
           src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
@@ -206,7 +231,7 @@ export default function RetellVoiceWidget({
       ) : null}
 
       <div className="module-topline">
-        <p>Canal de voz</p>
+        <p>{debugMode ? "Laboratorio de voz" : "Canal de voz"}</p>
         <span className={`availability availability-${demoEnabled ? callState : "error"}`}><span aria-hidden="true" /> {statusLabel}</span>
       </div>
 
@@ -218,8 +243,8 @@ export default function RetellVoiceWidget({
       </div>
 
       <div className="module-copy">
-        <p className="module-status"><span aria-hidden="true" /> Una voz para toda la prueba</p>
-        <h2 id="voice-entry-title">Lista cuando tú lo estés.</h2>
+        <p className="module-status"><span aria-hidden="true" /> {debugMode ? "Versión borrador fijada" : "Una voz para toda la prueba"}</p>
+        <h2 id="voice-entry-title">{debugMode ? "Prueba, termina y repite." : "Lista cuando tú lo estés."}</h2>
         <p className="voice-status" aria-live="polite">{statusMessage}</p>
       </div>
 
@@ -234,7 +259,7 @@ export default function RetellVoiceWidget({
             autoComplete="off"
           />
         </label>
-        {demoEnabled && turnstileSiteKey ? <div ref={turnstileContainer} className="turnstile-container" /> : null}
+        {demoEnabled && turnstileSiteKey && !debugMode ? <div ref={turnstileContainer} className="turnstile-container" /> : null}
         <button
           className={active ? "voice-button voice-button-stop" : "voice-button"}
           type="button"
@@ -247,7 +272,7 @@ export default function RetellVoiceWidget({
 
       <div className="module-notes">
         <p><span>01</span> Habla con naturalidad; no necesitas seguir un guion.</p>
-        <p><span>02</span> Hasta tres pruebas por conexión al día.</p>
+        <p><span>02</span> {debugMode ? "Cada llamada crea una sesión de prueba independiente." : "Hasta tres pruebas por conexión al día."}</p>
       </div>
     </aside>
   );

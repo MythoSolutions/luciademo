@@ -1,14 +1,14 @@
+import { randomUUID } from "node:crypto";
+
 import {
   LuciaServerError,
-  assertSmallJsonRequest,
   assertSameOrigin,
-  getClientIp,
+  assertSmallJsonRequest,
   getSessionConfig,
   hashVisitor,
-  isDemoEnabled,
+  isPrivateDebugEnabled,
   noStoreJson,
   safeString,
-  verifyTurnstile,
 } from "@/app/lib/lucia-server";
 import { createLuciaWebSession } from "@/app/lib/lucia-session";
 
@@ -18,21 +18,19 @@ export async function POST(request: Request) {
   try {
     assertSameOrigin(request);
     assertSmallJsonRequest(request);
-    if (!isDemoEnabled()) {
-      return noStoreJson({ ok: false, reason: "paused" }, 503);
+    if (!isPrivateDebugEnabled()) {
+      return noStoreJson({ ok: false, reason: "not_found" }, 404);
     }
 
     const body = await request.json() as Record<string, unknown>;
     if (safeString(body.website, 200)) {
-      throw new LuciaServerError("challenge_failed", 403);
+      throw new LuciaServerError("invalid_request", 403);
     }
-    const token = safeString(body.turnstileToken, 2048);
-    const ip = getClientIp(request);
+
     const config = getSessionConfig();
-    await verifyTurnstile({ token, secret: config.turnstileSecretKey, ip });
     const webCall = await createLuciaWebSession({
-      visitorHash: hashVisitor(ip, config.visitorHashSecret),
-      channel: "lucia_web_demo",
+      visitorHash: hashVisitor(`admin:${randomUUID()}`, config.visitorHashSecret),
+      channel: "lucia_admin_debug",
     });
     return noStoreJson({ ok: true, ...webCall });
   } catch (error) {
