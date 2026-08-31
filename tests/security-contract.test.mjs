@@ -16,6 +16,8 @@ test("keeps every Retell secret and agent identifier on the server", () => {
   assert.match(session, /createWebCall/);
   assert.match(server, /process\.env\[name\]/);
   assert.match(server, /RETELL_API_KEY/);
+  assert.match(server, /RETELL_AGENT_VERSION/);
+  assert.match(session, /agent_version: config\.retellAgentVersion/);
   assert.doesNotMatch(widget, /RETELL_API_KEY|RETELL_AGENT_ID|NEXT_PUBLIC_RETELL|agent_[a-z0-9_-]+/i);
   assert.doesNotMatch(envExample, /^NEXT_PUBLIC_RETELL/gm);
 });

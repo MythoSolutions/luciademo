@@ -68,6 +68,7 @@ export async function POST(request: Request) {
     retell = new Retell({ apiKey: config.retellApiKey, maxRetries: 1, timeout: 10_000 });
     const webCall = await retell.call.createWebCall({
       agent_id: config.retellAgentId,
+      agent_version: config.retellAgentVersion,
       metadata: { session_id: sessionId, channel: "lucia_web_demo" },
       retell_llm_dynamic_variables: {
         session_id: sessionId,

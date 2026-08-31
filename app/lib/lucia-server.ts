@@ -40,6 +40,14 @@ function positiveNumber(name: string, maximum: number) {
   return value;
 }
 
+function nonNegativeInteger(name: string, maximum: number) {
+  const value = Number(required(name));
+  if (!Number.isInteger(value) || value < 0 || value > maximum) {
+    throw new LuciaServerError("service_not_configured", 503);
+  }
+  return value;
+}
+
 export function isDemoEnabled() {
   return process.env.LUCIA_DEMO_ENABLED?.trim().toLowerCase() === "true";
 }
@@ -48,6 +56,7 @@ export function getSessionConfig() {
   return {
     retellApiKey: required("RETELL_API_KEY"),
     retellAgentId: required("RETELL_AGENT_ID"),
+    retellAgentVersion: nonNegativeInteger("RETELL_AGENT_VERSION", 10_000),
     visitorHashSecret: required("LUCIA_VISITOR_HASH_SECRET"),
     turnstileSecretKey: required("TURNSTILE_SECRET_KEY"),
     reservationCostUsd: positiveNumber("LUCIA_SESSION_RESERVATION_USD", 5),
