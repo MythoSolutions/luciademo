@@ -1,26 +1,38 @@
-# Lucía · Demo privada
+# Lucía · Demo privada protegida
 
-Landing temporal de Mytho Solutions para probar a Lucía, una recepcionista virtual de voz con el widget oficial de Retell.
+Landing de una sola entrada para hablar con Lucía. La misma llamada cubre cinco familias de atención o cualquier otro negocio descrito por la persona. La prueba dura aproximadamente cinco minutos y las acciones del negocio son ficticias.
 
-## Configuración local
+## Qué protege la entrada
 
-1. Copia `.env.example` como `.env.local`.
-2. Añade únicamente `NEXT_PUBLIC_RETELL_VOICE_PUBLIC_KEY` y `NEXT_PUBLIC_RETELL_AGENT_ID`.
-3. Ejecuta `npm run dev` y abre la dirección que muestra la terminal. Sin ambas variables, el sitio muestra una indicación sólo durante desarrollo y no carga el widget.
+El navegador sólo recibe la clave pública del reto anti‑bot. La clave de Retell, el agente y el acceso a n8n permanecen en el servidor. Antes de crear una llamada se comprueban:
 
-La duración máxima de cinco minutos se configura en el agente de Retell (`max_call_duration_ms = 300000`), no en esta página.
+- origen de la petición y reto Cloudflare Turnstile;
+- máximo de tres pruebas por conexión al día;
+- presupuesto diario y estado general de la demo;
+- reserva de la sesión antes de entregar el acceso temporal.
 
-## Publicación manual
+Retell firma los eventos y la captación de interesados. El servidor valida la firma sobre el cuerpo original, envía a n8n únicamente los datos operativos necesarios y no reenvía transcripciones. n8n guarda sesiones, eventos y leads, además de avisar por Telegram.
 
-### GitHub
+## Configuración
 
-1. Crea un repositorio vacío en GitHub.
-2. Desde esta carpeta, inicializa Git si hace falta, confirma los archivos y agrega el remoto.
-3. Sube la rama deseada. No incluyas `.env.local`.
+1. Copia `.env.example` como `.env.local` y completa los valores sin subir ese archivo al repositorio.
+2. Configura `LUCIA_PUBLIC_ORIGIN=https://lucia.mythosolutionsit.com` y `LUCIA_CLIENT_IP_HEADER` con la cabecera que garantice el proveedor de alojamiento. No expongas la aplicación directamente detrás de una cabecera falsificable.
+3. En Retell, usa `/api/retell/webhook` como webhook del agente y `/api/retell/lead` como destino de la función `save_lucia_lead`.
+4. Mantén `LUCIA_DEMO_ENABLED=false` hasta verificar el dominio, Turnstile, n8n y el borrador de Retell. Cambiarlo a `true` es el último paso de apertura.
 
-### Vercel
+`NEXT_PUBLIC_TURNSTILE_SITE_KEY` es la única configuración pública. `RETELL_API_KEY`, `RETELL_AGENT_ID`, las claves de Turnstile y n8n, y el secreto de hash son exclusivos del servidor.
 
-1. Importa el repositorio desde el panel de Vercel.
-2. Conserva la configuración detectada de Next.js.
-3. En **Environment Variables**, crea las mismas dos variables públicas para Production y Preview.
-4. Despliega. Vercel compilará la landing sin un backend adicional.
+## Validación local
+
+```text
+npm ci
+npm run validate:landing
+npm run lint
+npm run build
+```
+
+La validación comprueba la entrada única, las cinco rutas, los límites honestos, el aislamiento de secretos, las firmas Retell, el reto anti‑bot, las cabeceras defensivas, accesibilidad y adaptación móvil.
+
+## Estado de publicación
+
+El blindaje está implementado y se autorizó publicar la landing en pausa en `https://lucia.mythosolutionsit.com`. No debe habilitar llamadas hasta completar la conciliación privada de Retell, probar el recorrido integral y recibir autorización humana final.
