@@ -10,7 +10,7 @@
     "validate:landing": "node --test tests/*.test.mjs"
   },
   "engines": {
-    "node": ">=20.9.0"
+    "node": "24.x"
   },
   "dependencies": {
     "@fontsource-variable/manrope": "^5.3.0",
