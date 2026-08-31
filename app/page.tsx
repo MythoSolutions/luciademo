@@ -1,41 +1,72 @@
 import RetellVoiceWidget from "./components/retell-voice-widget";
 
-const examples = [
-  "Quiero solicitar una cotización.",
-  "Necesito reportar una incidencia.",
-  "Busco comunicarme con un área específica.",
-];
+const routes = [
+  { family: "Agenda", business: "Estética Camelia", prompt: "Quiero agendar una cita." },
+  { family: "Reserva", business: "Restaurante La Terraza", prompt: "Quiero hacer una reservación." },
+  { family: "Cotización", business: "Inmobiliaria Punto", prompt: "Necesito una cotización." },
+  { family: "Pedido", business: "Tienda Nube", prompt: "Necesito ayuda con un pedido." },
+  { family: "Técnico", business: "Taller Norte", prompt: "Quiero reportar una incidencia." },
+] as const;
 
 export default function Home() {
   return (
     <main className="site-shell">
       <div className="top-rule" aria-hidden="true" />
+
       <section className="hero" aria-labelledby="hero-title">
         <div className="intro-column">
           <header className="site-header">
-            <a className="wordmark" href="#inicio" aria-label="Mytho Solutions, inicio"><span className="wordmark-mark" aria-hidden="true">M</span><span>Mytho Solutions</span></a>
-            <p className="eyebrow">Demo privada · Recepcionista virtual</p>
+            <div className="wordmark" aria-label="Mytho Solutions">
+              <span className="wordmark-mark" aria-hidden="true">M</span>
+              <span>Mytho Solutions</span>
+            </div>
+            <p className="eyebrow">Demo privada · Entrada única</p>
           </header>
-          <div id="inicio" className="intro-copy">
-            <p className="kicker">PRUEBA DE VOZ / 05 MIN</p>
+
+          <div className="intro-copy">
+            <p className="kicker">Prueba de voz / aprox. 5 min</p>
             <h1 id="hero-title">Una llamada basta para entenderlo.</h1>
-            <p className="lede">Conversa con Lucía como si estuvieras llamando a tu negocio. Haz una consulta, interrúmpela o plantea una situación real y escucha cómo responde.</p>
+            <p className="lede">
+              Conversa con Lucía como si llamaras a tu negocio. Plantea una situación real y escucha cómo adapta la atención sin menús ni guiones.
+            </p>
           </div>
+
           <div className="examples" aria-labelledby="examples-title">
-            <p id="examples-title" className="section-label">Puedes empezar diciendo</p>
-            <ul>{examples.map((example) => <li key={example}>“{example}”</li>)}</ul>
+            <p id="examples-title" className="section-label">Puedes probarla diciendo</p>
+            <dl className="example-list">
+              {routes.map(({ family, business, prompt }) => (
+                <div className="example-row" key={family}>
+                  <dt>{family}</dt>
+                  <dd>“{prompt}” <span>{business}</span></dd>
+                </div>
+              ))}
+            </dl>
+            <p className="other-business">
+              ¿Tienes otro negocio? Descríbelo al comenzar y Lucía usará una ficha ficticia para continuar la prueba.
+            </p>
           </div>
         </div>
-        <aside className="lucia-module" aria-labelledby="lucia-title">
-          <div className="module-topline"><p className="section-label">CANAL DE VOZ</p><span className="availability"><span aria-hidden="true" /> Disponible</span></div>
-          <div className="voice-stage"><div className="voice-wave wave-outer" aria-hidden="true" /><div className="voice-wave wave-middle" aria-hidden="true" /><div className="voice-wave wave-inner" aria-hidden="true" /><div className="lucia-orb" aria-hidden="true"><span>Lu</span></div></div>
-          <div className="module-copy"><p className="module-status"><span aria-hidden="true" /> Lucía está disponible</p><h2 id="lucia-title">Lista cuando tú lo estés.</h2><p>Presiona <strong>“Probar recepcionista”</strong> en la esquina inferior derecha y permite el acceso al micrófono.</p></div>
-          <div className="module-notes"><p><span>01</span> Duración máxima de la prueba: 5 minutos</p><p><span>02</span> Habla con naturalidad. No necesitas seguir un guion.</p></div>
-        </aside>
+
+        <RetellVoiceWidget
+          demoEnabled={process.env.LUCIA_DEMO_ENABLED === "true"}
+          turnstileSiteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? ""}
+        />
       </section>
-      <section className="guidance" aria-labelledby="guidance-title"><p className="section-label">ANTES DE EMPEZAR</p><h2 id="guidance-title">Una prueba breve, en condiciones reales.</h2><p>Esta es una demostración controlada. No compartas información personal, financiera ni confidencial. Las transferencias y acciones externas pueden estar simuladas.</p></section>
-      <footer><span>Desarrollado por Mytho Solutions</span><span aria-hidden="true">© {new Date().getFullYear()}</span></footer>
-      <RetellVoiceWidget />
+
+      <section className="guidance" aria-labelledby="guidance-title">
+        <div>
+          <p className="section-label">Antes de empezar</p>
+          <h2 id="guidance-title">Una prueba breve, en condiciones reales.</h2>
+        </div>
+        <p>
+          Es una demostración controlada. Agendar, reservar, cotizar, pedir, escalar y transferir son acciones simuladas. No compartas información personal, financiera, médica ni confidencial.
+        </p>
+      </section>
+
+      <footer>
+        <span>Desarrollado por Mytho Solutions</span>
+        <span>© {new Date().getFullYear()}</span>
+      </footer>
     </main>
   );
 }
